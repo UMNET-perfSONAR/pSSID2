@@ -13,7 +13,7 @@
               "MWireless"
           ],
           "schedule": [
-              "every-2-minute"
+              "schedule_every_5_min"
           ],
           "jobs": [
               "layer-2-auth",
@@ -80,7 +80,7 @@
               "MWireless"
           ],
           "schedule": [
-              "every-2-minute"
+              "schedule_every_10_min"
           ],
           "jobs": [
               "layer-2-auth",
@@ -110,7 +110,7 @@
               "MWireless"
           ],
           "schedule": [
-              "every-15-minutes"
+              "schedule_every_1_hour"
           ],
           "jobs": [
               "layer-2-auth",
@@ -361,10 +361,10 @@
 ],
 
 "schedules": [
-  {
-  "name": "schedule_every_1_min",
-  "repeat": "*/1 * * * *"
-  },
+    {
+    "name": "schedule_every_1_min",
+    "repeat": "*/1 * * * *"
+    },
 
     {
   "name": "schedule_every_5_min",

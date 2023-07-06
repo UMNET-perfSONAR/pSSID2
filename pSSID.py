@@ -5,8 +5,10 @@ import json
 import queue
 import re
 from datetime import datetime
+from croniter import croniter
 
-class pSSID:
+class PSSID:
+    """ The pSSID scheduler. """
     def __init__(self):
         self.hostname = "rpi1"
         self.config_file = None
@@ -26,7 +28,7 @@ class pSSID:
         except FileNotFoundError:
             sys.exit('host name file not found')
     
-    # load the json object to local storage 
+    # load the json object to local storage
     def load_json(self):
         try:
             with open('./pSSID_config.json', 'r') as conf:
@@ -36,22 +38,27 @@ class pSSID:
             sys.exit('Json file failed to unpack')
         now = datetime.now()
         self.host_data_dict.write(now.strftime("%H:%M:%S")+ '\n')
-    
+        self.host_data_dict.write('{: <20} {: <5} {: <30}\n'.format("Host/Host Group", 'B/D', "Batch Name/Data Block Pair"))
+        
     # load schedule queue and data dictionary from host stanza
     def load_hosts(self):
         for host in self.config_file['hosts']:
             if self.hostname == host["name"]:
                 # process batches
                 for batch in host['batches']:
-                    self.job_queue.put((batch["priority"], batch))
+                    for single_schedule in batch['schedule']:
+                        next_time = self.get_next_time(datetime.now(), single_schedule)
+                        self.job_queue.put((next_time, batch["priority"], batch))
                     self.batch_set.add(batch["name"])
+                    self.host_data_dict.write('{: <20} {: <5} {: <30}\n'.format(host["name"], 'B', batch["name"]))
                 
                 # process data
                 for d in host['data']:
                     self.data_block[d] = host['data'][d]
-                
+                    self.host_data_dict.write('{: <20} {: <5} {: <30}\n'.format(host["name"], 'D', "{}:{}".format(d, host['data'][d])))
+    
                 # add stanza to host-data-dict
-                self.host_data_dict.write(str(host)+'\n')
+                # self.host_data_dict.write(str(host)+'\n')
 
         # print(self.job_queue)
         # print(self.data_block)
@@ -59,8 +66,12 @@ class pSSID:
 
     def regex_match(self, pattern_li):
         for x in pattern_li:
-            if re.match(x, self.hostname) != None:
-                return True
+            try:
+                if re.match(x, self.hostname) != None:
+                    return True
+            except re.error:
+                print('Regex matching error.')
+                pass
         return False
     
     def load_host_group(self):
@@ -75,40 +86,57 @@ class pSSID:
                     # skip duplicate batch
                     for batch in host['batches']:
                         if batch["name"] not in self.batch_set:
-                            self.job_queue.put((batch["priority"], batch))
+                            for single_schedule in batch['schedule']:
+                                next_time = self.get_next_time(datetime.now(), single_schedule)
+                                self.job_queue.put((next_time, batch["priority"], batch))
                             self.batch_set.add(batch["name"])
+                            self.host_data_dict.write('{: <20} {: <5} {: <30}\n'.format(host["name"], 'B', batch["name"]))
                     
                     # skip duplicate data block
                     for d in host['data']:
                         if d not in self.data_block:
                             self.data_block[d] = host['data'][d]
+                            self.host_data_dict.write('{: <20} {: <5} {: <30}\n'.format(host["name"], 'D', "{}:{}".format(d, host['data'][d])))
                     
                     # add stanza to host-data-dict
-                    self.host_data_dict.write(str(host)+'\n')
+                    # self.host_data_dict.write(str(host)+'\n')
         
         if all_group:
             for batch in all_group['batches']:
                 if batch["name"] not in self.batch_set:
-                    self.job_queue.put((batch["priority"], batch))
+                    for single_schedule in batch['schedule']:
+                        next_time = self.get_next_time(datetime.now(), single_schedule)
+                        self.job_queue.put((next_time, batch["priority"], batch))
                     self.batch_set.add(batch["name"])
+                    self.host_data_dict.write('{: <20} {: <5} {: <30}\n'.format("ALL", 'B', batch["name"]))
             for d in all_group['data']:
                 if d not in self.data_block:
                     self.data_block[d] = all_group['data'][d]
+                    self.host_data_dict.write('{: <20} {: <5} {: <30}\n'.format("ALL", 'D', "{}:{}".format(d, all_group['data'][d])))
 
             # add stanza to host-data-dict
-                self.host_data_dict.write(str(all_group)+'\n')
+            # self.host_data_dict.write(str(all_group)+'\n')
 
+        print(self.job_queue.get())
         print(self.job_queue.get())
         print(self.job_queue.get())
         print(self.data_block)
         print(self.batch_set)
 
-    
-    
+    def get_next_time(self, baseline, cronkey):
+        for schedule in self.config_file["schedules"]:
+            print(cronkey, schedule["name"])
+            if schedule["name"] == cronkey:
+                sche = croniter(schedule["repeat"], baseline)
+                return sche.get_next(datetime).timestamp()
+        return None
+
 
 if __name__ == "__main__":
-    dispatcher = pSSID()
+    dispatcher = PSSID()
     # dispatcher.find_hostname()
+    # verify schedule, hostname
+    # write the temp file
     dispatcher.load_json()
     dispatcher.load_hosts()
     dispatcher.load_host_group()
