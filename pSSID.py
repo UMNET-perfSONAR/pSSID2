@@ -6,10 +6,11 @@ import heapq
 import re
 from datetime import datetime
 from croniter import croniter
+import argparse
 
 class PSSID:
     """ The pSSID scheduler. """
-    def __init__(self):
+    def __init__(self, mode):
         self.hostname = "rpi1"
         self.config_file = None
         self.job_queue = []
@@ -17,6 +18,10 @@ class PSSID:
         self.data_block = {}
         self.host_data_dict = open('./host-data-dict', 'a')
         self.queue_info = open('./queue-info', 'w')
+        if mode is not None and mode.lower() == "d" or mode.lower() == "daemon":
+            self.daemon_mode = True
+        else:
+            self.daemon_mode = False
     
     def __del__(self):
         self.host_data_dict.close()
@@ -144,7 +149,13 @@ class PSSID:
 
 
 if __name__ == "__main__":
-    dispatcher = PSSID()
+    parser = argparse.ArgumentParser(description='Choose which mode to run: Mock(M) or Daemon(D). Default would be Mock.')
+    parser.add_argument('--mode', '-m', type=str,
+        help='A required argument for mode selection')
+    
+    # setup before entering the main loop
+    args = parser.parse_args()
+    dispatcher = PSSID(args.mode)
     # dispatcher.find_hostname()
     dispatcher.load_json()
     dispatcher.load_hosts()
