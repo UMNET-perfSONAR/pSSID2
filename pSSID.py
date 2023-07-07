@@ -2,7 +2,7 @@
 # pSSID algorithm for job dispatching
 import sys
 import json
-import queue
+import heapq
 import re
 from datetime import datetime
 from croniter import croniter
@@ -12,13 +12,15 @@ class PSSID:
     def __init__(self):
         self.hostname = "rpi1"
         self.config_file = None
-        self.job_queue = queue.PriorityQueue()
+        self.job_queue = []
         self.batch_set = set()
         self.data_block = {}
         self.host_data_dict = open('./host-data-dict', 'a')
+        self.queue_info = open('./queue-info', 'w')
     
     def __del__(self):
         self.host_data_dict.close()
+        self.queue_info.close()
     
     # identify the host name of the machine
     def find_hostname(self):
@@ -48,7 +50,7 @@ class PSSID:
                 for batch in host['batches']:
                     for single_schedule in batch['schedule']:
                         next_time = self.get_next_time(datetime.now(), single_schedule)
-                        self.job_queue.put((next_time, batch["priority"], batch))
+                        heapq.heappush(self.job_queue,(next_time, batch["priority"], batch))
                     self.batch_set.add(batch["name"])
                     self.host_data_dict.write('{: <20} {: <5} {: <30}\n'.format(host["name"], 'B', batch["name"]))
                 
@@ -88,7 +90,7 @@ class PSSID:
                         if batch["name"] not in self.batch_set:
                             for single_schedule in batch['schedule']:
                                 next_time = self.get_next_time(datetime.now(), single_schedule)
-                                self.job_queue.put((next_time, batch["priority"], batch))
+                                heapq.heappush(self.job_queue,(next_time, batch["priority"], batch))
                             self.batch_set.add(batch["name"])
                             self.host_data_dict.write('{: <20} {: <5} {: <30}\n'.format(host["name"], 'B', batch["name"]))
                     
@@ -106,7 +108,7 @@ class PSSID:
                 if batch["name"] not in self.batch_set:
                     for single_schedule in batch['schedule']:
                         next_time = self.get_next_time(datetime.now(), single_schedule)
-                        self.job_queue.put((next_time, batch["priority"], batch))
+                        heapq.heappush(self.job_queue,(next_time, batch["priority"], batch))
                     self.batch_set.add(batch["name"])
                     self.host_data_dict.write('{: <20} {: <5} {: <30}\n'.format("ALL", 'B', batch["name"]))
             for d in all_group['data']:
@@ -117,9 +119,7 @@ class PSSID:
             # add stanza to host-data-dict
             # self.host_data_dict.write(str(all_group)+'\n')
 
-        print(self.job_queue.get())
-        print(self.job_queue.get())
-        print(self.job_queue.get())
+        print(self.job_queue)
         print(self.data_block)
         print(self.batch_set)
 
@@ -131,6 +131,16 @@ class PSSID:
                 return sche.get_next(datetime).timestamp()
         return None
 
+    # print queue information in external log
+    def print_queue_info(self):
+        now = datetime.now()
+        self.queue_info.write(now.strftime("%H:%M:%S")+ '\n')
+        self.queue_info.write('{: <20} {: <10} {: <30}\n'.format("Next Run Time", "Priority", "Batch Name"))
+        for timestamp, _, batch in heapq.nsmallest(len(self.job_queue), self.job_queue):
+            future_time = datetime.fromtimestamp(timestamp)
+            future_time_str = future_time.strftime("%H:%M:%S")
+            self.queue_info.write('{: <20} {: <10} {: <30}\n'.format(future_time_str, batch['priority'], batch["name"]))
+
 
 if __name__ == "__main__":
     dispatcher = PSSID()
@@ -140,3 +150,4 @@ if __name__ == "__main__":
     dispatcher.load_json()
     dispatcher.load_hosts()
     dispatcher.load_host_group()
+    dispatcher.print_queue_info()

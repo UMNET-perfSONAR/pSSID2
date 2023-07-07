@@ -5,44 +5,24 @@
     {
       "name": "rpi1",
       "batches": [
-        {
-          "name":"comprehensive-wifi",
-          "priority": 1,
-          "ttl": 180,
-          "SSID-profiles": [
-              "MWireless"
-          ],
-          "schedule": [
-              "schedule_every_5_min"
-          ],
-          "jobs": [
-              "layer-2-auth",
-              "layer-3-auth",
-              "all-tests"
-          ],
-          "archivers": [
-              "elk-stack"
-          ]
-        }
+        "comprehensive-wifi"
       ],
-      "data": {}
+      "data": []
 
     },
 
     {
       "name": "rpi2",
       "batches": [],
-      "data": {}
+      "data": []
     },
 
     {
       "name": "rpi3",
-      "batches": [
-  
-      ],
-      "data": {
-        "interface_wifi": "wlan0"
-      }
+      "batches": [],
+      "data": [
+        {"interface_wifi": "wlan0"}
+      ]
     }
 
   ],
@@ -54,9 +34,9 @@
       "hosts_regex": [ "rpi*", "raspberry*" ],
       "hosts": [ "rpi1", "rpi2", "rpi3" ],
       "batches": [],
-      "data": {
-        "interface_wifi": "wlan2"
-      }
+      "data": [
+        {"interface_wifi": "wlan2"}
+      ]
     },
 
     {
@@ -64,7 +44,7 @@
       "hosts_regex": [ ],
       "hosts": [],
       "batches": [],
-      "data": {}
+      "data": []
     },
 
     {
@@ -72,29 +52,11 @@
       "hosts_regex": [ ],
       "hosts": [],
       "batches": [
-        {
-          "name":"comprehensive-wifi-all-group",
-          "priority": 2,
-          "ttl": 180,
-          "SSID-profiles": [
-              "MWireless"
-          ],
-          "schedule": [
-              "schedule_every_10_min"
-          ],
-          "jobs": [
-              "layer-2-auth",
-              "layer-3-auth",
-              "all-tests"
-          ],
-          "archivers": [
-              "elk-stack"
-          ]
-        }
+        "comprehensive-wifi-all-group"
       ],
-      "data": {
-        "allgroup": "true"
-      }
+      "data": [
+        {"allgroup": "true"}
+      ]
     },
 
     {
@@ -102,27 +64,9 @@
       "hosts_regex": [ ],
       "hosts": [ "rpi1", "rpi2" ],
       "batches": [
-        {
-          "name": "throughput-latency-frequent",
-          "priority": 3,
-          "ttl": 180,
-          "SSID-profiles": [
-              "MWireless"
-          ],
-          "schedule": [
-              "schedule_every_1_hour"
-          ],
-          "jobs": [
-              "layer-2-auth",
-              "layer-3-auth",
-              "throughput-latency"
-          ],
-          "archivers": [
-              "elk-stack"
-          ]
-        }
+        "throughput-latency-frequent"
       ],
-      "data": {}
+      "data": []
     }
 ],
 
