@@ -35,36 +35,41 @@ class PSSID:
         try:
             with open('./pSSID_config.json', 'r') as conf:
                 self.config_file = json.load(conf)
-                print(self.config_file['hosts'])
         except json.JSONDecodeError:
             sys.exit('Json file failed to unpack')
         now = datetime.now()
         self.host_data_dict.write(now.strftime("%H:%M:%S")+ '\n')
         self.host_data_dict.write('{: <20} {: <5} {: <30}\n'.format("Host/Host Group", 'B/D', "Batch Name/Data Block Pair"))
-        
+    
+    # find the batch json object given the name
+    def find_batch(self, name):
+        for batchobj in self.config_file["batches"]:
+            if batchobj["name"] == name:
+                return batchobj
+        return None
+    
     # load schedule queue and data dictionary from host stanza
     def load_hosts(self):
         for host in self.config_file['hosts']:
             if self.hostname == host["name"]:
                 # process batches
-                for batch in host['batches']:
+                for batch_name in host['batches']:
+                    batch = self.find_batch(batch_name)
                     for single_schedule in batch['schedule']:
                         next_time = self.get_next_time(datetime.now(), single_schedule)
-                        heapq.heappush(self.job_queue,(next_time, batch["priority"], batch))
+                        heapq.heappush(self.job_queue,(next_time, batch["priority"], json.dumps(batch)))
                     self.batch_set.add(batch["name"])
                     self.host_data_dict.write('{: <20} {: <5} {: <30}\n'.format(host["name"], 'B', batch["name"]))
                 
                 # process data
-                for d in host['data']:
-                    self.data_block[d] = host['data'][d]
-                    self.host_data_dict.write('{: <20} {: <5} {: <30}\n'.format(host["name"], 'D', "{}:{}".format(d, host['data'][d])))
-    
-                # add stanza to host-data-dict
-                # self.host_data_dict.write(str(host)+'\n')
+                for key in host['data']:
+                    if key not in self.data_block: 
+                        self.data_block[key] = host['data'][key]
+                        self.host_data_dict.write('{: <20} {: <5} {: <30}\n'.format(host["name"], 'D', "{}:{}".format(key, host['data'][key])))
 
         # print(self.job_queue)
         # print(self.data_block)
-        print(self.batch_set)
+        # print(self.batch_set)
 
     def regex_match(self, pattern_li):
         for x in pattern_li:
@@ -86,38 +91,34 @@ class PSSID:
             else:
                 if self.regex_match(host['hosts_regex']) or self.hostname in host['hosts']:
                     # skip duplicate batch
-                    for batch in host['batches']:
-                        if batch["name"] not in self.batch_set:
+                    for batch_name in host['batches']:
+                        if batch_name not in self.batch_set:
+                            batch = self.find_batch(batch_name)
                             for single_schedule in batch['schedule']:
                                 next_time = self.get_next_time(datetime.now(), single_schedule)
-                                heapq.heappush(self.job_queue,(next_time, batch["priority"], batch))
-                            self.batch_set.add(batch["name"])
+                                heapq.heappush(self.job_queue,(next_time, batch["priority"], json.dumps(batch)))
+                            self.batch_set.add(batch_name)
                             self.host_data_dict.write('{: <20} {: <5} {: <30}\n'.format(host["name"], 'B', batch["name"]))
-                    
-                    # skip duplicate data block
-                    for d in host['data']:
-                        if d not in self.data_block:
-                            self.data_block[d] = host['data'][d]
-                            self.host_data_dict.write('{: <20} {: <5} {: <30}\n'.format(host["name"], 'D', "{}:{}".format(d, host['data'][d])))
-                    
-                    # add stanza to host-data-dict
-                    # self.host_data_dict.write(str(host)+'\n')
         
+                    # skip duplicate data block
+                    for key in host["data"]:
+                        if key not in self.data_block:
+                            self.data_block[key] = host['data'][key]
+                            self.host_data_dict.write('{: <20} {: <5} {: <30}\n'.format(host["name"], 'D', "{}:{}".format(key, host['data'][key])))
+                    
         if all_group:
-            for batch in all_group['batches']:
-                if batch["name"] not in self.batch_set:
+            for batch_name in all_group['batches']:
+                if batch_name not in self.batch_set:
+                    batch = self.find_batch(batch_name)
                     for single_schedule in batch['schedule']:
                         next_time = self.get_next_time(datetime.now(), single_schedule)
-                        heapq.heappush(self.job_queue,(next_time, batch["priority"], batch))
-                    self.batch_set.add(batch["name"])
+                        heapq.heappush(self.job_queue,(next_time, batch["priority"], json.dumps(batch)))
+                    self.batch_set.add(batch_name)
                     self.host_data_dict.write('{: <20} {: <5} {: <30}\n'.format("ALL", 'B', batch["name"]))
-            for d in all_group['data']:
-                if d not in self.data_block:
-                    self.data_block[d] = all_group['data'][d]
-                    self.host_data_dict.write('{: <20} {: <5} {: <30}\n'.format("ALL", 'D', "{}:{}".format(d, all_group['data'][d])))
-
-            # add stanza to host-data-dict
-            # self.host_data_dict.write(str(all_group)+'\n')
+            for key in all_group['data']:
+                if key not in self.data_block:
+                    self.data_block[key] = all_group['data'][key]
+                    self.host_data_dict.write('{: <20} {: <5} {: <30}\n'.format("ALL", 'D', "{}:{}".format(key, all_group['data'][key])))
 
         print(self.job_queue)
         print(self.data_block)
@@ -125,7 +126,6 @@ class PSSID:
 
     def get_next_time(self, baseline, cronkey):
         for schedule in self.config_file["schedules"]:
-            print(cronkey, schedule["name"])
             if schedule["name"] == cronkey:
                 sche = croniter(schedule["repeat"], baseline)
                 return sche.get_next(datetime).timestamp()
@@ -137,6 +137,7 @@ class PSSID:
         self.queue_info.write(now.strftime("%H:%M:%S")+ '\n')
         self.queue_info.write('{: <20} {: <10} {: <30}\n'.format("Next Run Time", "Priority", "Batch Name"))
         for timestamp, _, batch in heapq.nsmallest(len(self.job_queue), self.job_queue):
+            batch = json.loads(batch)
             future_time = datetime.fromtimestamp(timestamp)
             future_time_str = future_time.strftime("%H:%M:%S")
             self.queue_info.write('{: <20} {: <10} {: <30}\n'.format(future_time_str, batch['priority'], batch["name"]))
@@ -145,8 +146,6 @@ class PSSID:
 if __name__ == "__main__":
     dispatcher = PSSID()
     # dispatcher.find_hostname()
-    # verify schedule, hostname
-    # write the temp file
     dispatcher.load_json()
     dispatcher.load_hosts()
     dispatcher.load_host_group()
