@@ -52,7 +52,7 @@
       "hosts_regex": [ ],
       "hosts": [],
       "batches": [
-        "comprehensive-wifi-all-group"
+        "comprehensive-wifi"
       ],
       "data": [
         {"allgroup": "true"}
@@ -103,7 +103,7 @@
   {
     "name": "job-dhcp-wifi",
     "tests": [
-      "layer-3-mwireless-auth"
+      "example_test_dns_aaaa"
     ],
     "continue-if": true
   }
@@ -117,18 +117,17 @@
     "priority": 1,
     "ttl": 180,
     "SSID-profiles": [
-      "MWireless"
+      "MWireless_profile"
     ],
     "schedule": [
-      "every-2-minute"
+      "schedule_every_5_min"
     ],
     "jobs": [
-      "layer-2-auth",
-      "layer-3-auth",
-      "all-tests"
+      "job-dot1x-mwireless",
+      "job-dhcp-wifi"
     ],
     "archivers": [
-      "elk-stack"
+      "example_rabbitmq_archive"
     ]
   },
   {
@@ -136,18 +135,16 @@
     "priority": 1,
     "ttl": 180,
     "SSID-profiles": [
-        "MWireless"
+        "MWireless_profile"
     ],
     "schedule": [
-        "every-15-minutes"
+      "schedule_every_10_min"
     ],
     "jobs": [
-        "layer-2-auth",
-        "layer-3-auth",
-        "throughput-latency"
+      "job-dhcp-wifi"
     ],
     "archivers": [
-        "elk-stack"
+      "example_syslog_archive"
     ]
   }
 ],
