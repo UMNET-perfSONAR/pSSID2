@@ -120,6 +120,7 @@
   {
     "name": "comprehensive-wifi",
     "priority": 1,
+    "BSSID-scan-interface": "JQ.interface_wifi",
     "SSID-profiles": [
       "MWireless_profile"
     ],
@@ -132,6 +133,22 @@
     ],
     "archivers": [
       "example_rabbitmq_archive"
+    ]
+  },
+  {
+    "name": "throughput-latency-frequent",
+    "priority": 1,
+    "SSID-profiles": [
+        "MWireless_profile"
+    ],
+    "schedule": [
+      "schedule_every_10_min"
+    ],
+    "jobs": [
+      "job-dhcp-wifi"
+    ],
+    "archivers": [
+      "example_syslog_archive"
     ]
   },
   {
