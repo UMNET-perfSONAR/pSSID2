@@ -119,7 +119,7 @@
 "batches": [
   {
     "name": "comprehensive-wifi",
-    "priority": 1,
+    "priority": 3,
     "BSSID-scan-interface": "JQ.interface_wifi",
     "SSID-profiles": [
       "MWireless_profile"
@@ -138,6 +138,7 @@
   {
     "name": "throughput-latency-frequent",
     "priority": 1,
+    "BSSID-scan-interface": "JQ.interface_wifi",
     "SSID-profiles": [
         "MWireless_profile"
     ],
@@ -152,8 +153,9 @@
     ]
   },
   {
-    "name": "throughput-latency-frequent",
-    "priority": 1,
+    "name": "layer2connect",
+    "priority": 2,
+    "BSSID-scan-interface": "JQ.interface_wifi",
     "SSID-profiles": [
         "MWireless_profile"
     ],
@@ -161,7 +163,8 @@
       "schedule_every_10_min"
     ],
     "jobs": [
-      "job-dhcp-wifi"
+      "job-dhcp-wifi",
+      "dns-cname-perfsonar"
     ],
     "archivers": [
       "example_syslog_archive"

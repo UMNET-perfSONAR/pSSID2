@@ -8,6 +8,7 @@ import argparse
 import sched
 import time
 from croniter import croniter
+from layer2scan import scan
 
 class PSSID:
     """ The pSSID scheduler. """
@@ -193,6 +194,10 @@ class PSSID:
 
     def run_batch(self, batch):
         """ main run function for each batch """
+        print("scanning for entry points...")
+        scan_res = json.loads(scan())
+        print(scan_res)
+
         extracted_batch = json.loads(batch)
         print('Executing batch ' + extracted_batch['name'])
         for job in extracted_batch['jobs']:
