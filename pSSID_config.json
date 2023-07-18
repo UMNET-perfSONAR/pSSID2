@@ -125,7 +125,7 @@
       "MWireless_profile"
     ],
     "schedule": [
-      "schedule_every_5_min"
+      "schedule_every_1_min"
     ],
     "jobs": [
       "job-dot1x-mwireless",

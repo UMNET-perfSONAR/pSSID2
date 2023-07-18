@@ -194,11 +194,20 @@ class PSSID:
 
     def run_batch(self, batch):
         """ main run function for each batch """
+        extracted_batch = json.loads(batch)
         print("scanning for entry points...")
         scan_res = json.loads(scan())
         print(scan_res)
+        print("filtering list result based on SSID profile")
+        res = []
+        for bssid, info in scan_res.items():
+            for each_profile in extracted_batch["SSID-profiles"]:
+                for profile in self.config_file["SSID_profiles"]:
+                    if profile["name"] == each_profile:
+                        if info["Essid"] == profile["SSID"] and profile["min_signal"] < int(info["Signal_level"]):
+                            res.append(bssid)
+        print(res)
 
-        extracted_batch = json.loads(batch)
         print('Executing batch ' + extracted_batch['name'])
         for job in extracted_batch['jobs']:
             print("Executing job " + job)
