@@ -9,6 +9,7 @@ import sched
 import time
 from croniter import croniter
 from layer2scan import scan
+import pyjq
 
 class PSSID:
     """ The pSSID scheduler. """
@@ -205,12 +206,27 @@ class PSSID:
                 for profile in self.config_file["SSID_profiles"]:
                     if profile["name"] == each_profile:
                         if info["Essid"] == profile["SSID"] and profile["min_signal"] < int(info["Signal_level"]):
-                            res.append(bssid)
+                            res.append((profile["SSID"], bssid))
         print(res)
-
-        print('Executing batch ' + extracted_batch['name'])
-        for job in extracted_batch['jobs']:
-            print("Executing job " + job)
+        
+        print("process bssid list")
+        for ssid, bssid in res:
+            # updating data block
+            if ssid not in self.data_block:
+                self.data_block["ssid"] = ssid
+            self.data_block["ssid"] = ssid
+            if bssid not in self.data_block:
+                self.data_block["bssid"] = bssid
+            self.data_block["bssid"] = bssid
+            
+            print('Executing batch ' + extracted_batch['name'] + ' with ' + ssid + ' and ' + bssid)
+            query = pyjq.compile(f'select(.tests[].name  == {job}) | .spec | interface = {self.data_block["interface_wifi"]} | .spec')
+            for job in extracted_batch['jobs']:
+                print("Executing job " + job)
+                transformed_data = query.one(self.config_file)
+                print(json.dumps(transformed_data))
+        
+        # reschedule soonest (only one time)
         for single_schedule in extracted_batch['schedule']:
             next_time = self.get_next_time(datetime.now(), single_schedule)
             future_time = datetime.fromtimestamp(next_time)

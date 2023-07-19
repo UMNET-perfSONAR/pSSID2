@@ -7,10 +7,10 @@
       "batches": [
         "comprehensive-wifi"
       ],
-      "data": {}
-
+      "data": {
+      }
+	
     },
-
     {
       "name": "rpi2",
       "batches": [],
