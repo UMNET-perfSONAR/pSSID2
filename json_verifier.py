@@ -92,7 +92,7 @@ class JSON_Verifier:
         # check jobs
         for job in batch["jobs"]:
             if not self.verify_jobs(job):
-                sys.exit('Job name does not match') 
+                sys.exit('Job name does not match ' + job) 
         print('Job name in batch {} is verified'.format(batch["name"]))
 
         # check archivers
@@ -112,7 +112,7 @@ class JSON_Verifier:
         for job in self.config_file["jobs"]:
             for test_name in job["tests"]:
                 if not self.find_test_name(test_name):
-                    sys.exit("Test name does not find a match")
+                    sys.exit("Test name does not find a match " + test_name)
             job_set.add(job["name"])
         if len(job_set) == len(self.config_file["jobs"]):
             print("all names are unique in jobs")
@@ -187,5 +187,6 @@ if __name__ == "__main__":
     verifier.verify_schedules_stanza()
     print('=====Verifying ssid profile stanza:')
     verifier.verify_ssid_stanza()
+    print('=====ALL TESTS PASSED=====')
 
 

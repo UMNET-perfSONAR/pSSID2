@@ -9,7 +9,6 @@ import sched
 import time
 from croniter import croniter
 from layer2scan import scan
-import pyjq
 
 class PSSID:
     """ The pSSID scheduler. """
@@ -220,11 +219,15 @@ class PSSID:
             self.data_block["bssid"] = bssid
             
             print('Executing batch ' + extracted_batch['name'] + ' with ' + ssid + ' and ' + bssid)
-            query = pyjq.compile(f'select(.tests[].name  == {job}) | .spec | interface = {self.data_block["interface_wifi"]} | .spec')
             for job in extracted_batch['jobs']:
                 print("Executing job " + job)
-                transformed_data = query.one(self.config_file)
-                print(json.dumps(transformed_data))
+                # locate test obj
+                for single_job in self.config_file["tests"]:
+                    if single_job["name"] == job:
+                        spec = single_job["spec"]
+                        if spec["interface"].strip().split()[0] == "JQ":
+                            spec["interface"] = self.data_block["interface_wifi"]
+                        print("Test spec : " + str(spec)) 
         
         # reschedule soonest (only one time)
         for single_schedule in extracted_batch['schedule']:

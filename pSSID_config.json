@@ -108,6 +108,14 @@
   {
     "name": "job-dhcp-wifi",
     "tests": [
+      "example_test_dns_a"
+    ],
+    "continue-if": true
+  },
+
+  {
+    "name": "dns-cname-perfsonar",
+    "tests": [
       "example_test_dns_aaaa"
     ],
     "continue-if": true
@@ -197,9 +205,9 @@
     "name": "dot1x-mwireless",
     "type": "dot1x",
     "spec": {
-    "interface": "JQ .interface_wifi",
-    "ssid": "MWireless",
-    "key-management":"WPA-EAP"    
+    	"interface": "JQ .interface_wifi",
+    	"ssid": "MWireless",
+    	"key-management":"WPA-EAP"    
     }
   },
 
@@ -207,12 +215,12 @@
     "name": "dot1x-eduroam",
     "type": "dot1x",
     "spec": {
-    "interface": "JQ .interface_wifi",
-    "ssid": "eduroam",
-    "key-management":"WPA-EAP",
-    "obscure_option": "parameter",
-    "reason": "LHC throughput",
-    "lhs": "rhs"
+    	"interface": "JQ .interface_wifi",
+    	"ssid": "eduroam",
+    	"key-management":"WPA-EAP",
+    	"obscure_option": "parameter",
+    	"reason": "LHC throughput",
+    	"lhs": "rhs"
     }
   },
 
