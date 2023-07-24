@@ -133,7 +133,8 @@
       "MWireless_profile"
     ],
     "schedule": [
-      "schedule_every_1_min"
+      "schedule_every_1_min",
+      "schedule_every_5_min"
     ],
     "jobs": [
       "job-dot1x-mwireless",
@@ -380,7 +381,7 @@
 
 ],
 
-"SSID_profiles" : [
+"SSID-profiles" : [
   {
     "name": "MWireless_profile",
     "SSID": "MWireless",

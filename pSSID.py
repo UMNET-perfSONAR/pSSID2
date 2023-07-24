@@ -195,6 +195,7 @@ class PSSID:
     def run_batch(self, batch):
         """ main run function for each batch """
         extracted_batch = json.loads(batch)
+        extracted_batch["BSSID-scan-interface"] = self.data_block["interface_wifi"] if "interface_wifi" in self.data_block else 'wlan0'
         print("scanning for entry points...")
         scan_res = json.loads(scan())
         print(scan_res)
@@ -202,12 +203,17 @@ class PSSID:
         res = []
         for bssid, info in scan_res.items():
             for each_profile in extracted_batch["SSID-profiles"]:
-                for profile in self.config_file["SSID_profiles"]:
+                for profile in self.config_file["SSID-profiles"]:
                     if profile["name"] == each_profile:
                         if info["Essid"] == profile["SSID"] and profile["min_signal"] < int(info["Signal_level"]):
                             res.append((profile["SSID"], bssid))
         print(res)
         
+        # generating batch object
+        batch_obj = {
+            "jobs": []
+        }
+
         print("process bssid list")
         for ssid, bssid in res:
             # updating data block
@@ -218,30 +224,45 @@ class PSSID:
                 self.data_block["bssid"] = bssid
             self.data_block["bssid"] = bssid
             
-            print('Executing batch ' + extracted_batch['name'] + ' with ' + ssid + ' and ' + bssid)
+            # generating job object for batch
             for job in extracted_batch['jobs']:
                 print("Executing job " + job)
-                # locate test obj
-                for single_job in self.config_file["tests"]:
+                gen_job = {
+                    "label:": extracted_batch['name'],
+                    "iterations": self.data_block["iterations"] if "iterations" in self.data_block else 3,
+                    "parallel": not self.data_block["sync-start"] if "sync-start" in self.data_block else False,
+                    "task": [],
+                    "task-transform": {
+                        "script": [x for x in self.data_block["task-transform"]] if "task-transform" in self.data_block else []
+                        }
+                    }
+                for single_job in self.config_file["jobs"]:
                     if single_job["name"] == job:
-                        spec = single_job["spec"]
-                        if spec["interface"].strip().split()[0] == "JQ":
-                            spec["interface"] = self.data_block["interface_wifi"]
-                        print("Test spec : " + str(spec)) 
+                        # gen job info
+                        for single_test_str in single_job["tests"]:
+                            for test_obj in self.config_file["tests"]:
+                                if test_obj["name"] == single_test_str:
+                                    # transform task
+                                    gen_task_obj = test_obj
+                                    if "interface" in gen_task_obj["spec"] and gen_task_obj["spec"]["interface"].strip().split()[0] == "JQ":
+                                        gen_task_obj["spec"]["interface"] = self.data_block["interface_wifi"]
+                                    print("Test obj: " + str(gen_task_obj))
+                                    gen_job["task"].append(gen_task_obj)
+                batch_obj["jobs"].append(gen_job)
+        print("Batch obj" + str(batch_obj))
         
         # reschedule soonest (only one time)
-        for single_schedule in extracted_batch['schedule']:
-            next_time = self.get_next_time(datetime.now(), single_schedule)
-            future_time = datetime.fromtimestamp(next_time)
-            future_time_str = future_time.strftime("%H:%M:%S")
-            print(f"{extracted_batch['name']} is rescheduled to {future_time_str}")
-            self.scheduler.enterabs(
-                next_time,
-                extracted_batch["priority"],
-                self.run_batch,
-                argument=(batch,)
-            )
-            self.print_queue_info()
+        next_time = min([self.get_next_time(datetime.now(), x) for x in extracted_batch['schedule']])
+        future_time = datetime.fromtimestamp(next_time)
+        future_time_str = future_time.strftime("%H:%M:%S")
+        print(f"{extracted_batch['name']} is rescheduled to {future_time_str}")
+        self.scheduler.enterabs(
+            next_time,
+            extracted_batch["priority"],
+            self.run_batch,
+            argument=(batch,)
+        )
+        self.print_queue_info()
 
 if __name__ == "__main__":
     # command line parsing for mode specification
