@@ -191,11 +191,30 @@ class PSSID:
             self.scheduler.enterabs(timestamp, pirority_num, self.run_batch, argument=(batch,))
         self.print_queue_info()
         self.scheduler.run()
+    
+    def transform_task(self, transform_field, gen_task_obj):
+        """ transform test spec """
+        if transform_field in gen_task_obj["spec"]:
+            match = re.match(r"^JQ\.(.*)", gen_task_obj["spec"][transform_field])
+            if match:
+                gen_task_obj["spec"][transform_field] = self.data_block[match.group(1).strip()]
 
     def run_batch(self, batch):
         """ main run function for each batch """
         extracted_batch = json.loads(batch)
         extracted_batch["BSSID-scan-interface"] = self.data_block["interface_wifi"] if "interface_wifi" in self.data_block else 'wlan0'
+
+        # transform archivers
+        for archiver in extracted_batch["archivers"]:
+            for archiver_obj in self.config_file["archivers"]:
+                if archiver_obj["name"] == archiver:
+                    gen_archiver_obj = archiver_obj
+                    for data_item in archiver_obj["data"]:
+                        match = re.match(r"^JQ\.(.*)", archiver_obj["data"][data_item])
+                        if match:
+                            gen_archiver_obj["data"][data_item] = self.data_block[match.group(1).strip()]
+                    print(gen_archiver_obj)
+
         print("scanning for entry points...")
         scan_res = json.loads(scan())
         print(scan_res)
@@ -244,8 +263,11 @@ class PSSID:
                                 if test_obj["name"] == single_test_str:
                                     # transform task
                                     gen_task_obj = test_obj
-                                    if "interface" in gen_task_obj["spec"] and gen_task_obj["spec"]["interface"].strip().split()[0] == "JQ":
-                                        gen_task_obj["spec"]["interface"] = self.data_block["interface_wifi"]
+
+                                    self.transform_task("interface", gen_task_obj)
+                                    self.transform_task("ssid", gen_task_obj)
+                                    self.transform_task("bssid", gen_task_obj)
+
                                     print("Test obj: " + str(gen_task_obj))
                                     gen_job["task"].append(gen_task_obj)
                 batch_obj["jobs"].append(gen_job)
