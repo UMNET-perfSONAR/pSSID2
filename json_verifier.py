@@ -16,7 +16,7 @@ class JSON_Verifier:
 
     def load_json(self):
         try:
-            with open('./pSSID_config.json', 'r') as conf:
+            with open('/tmp/config.json', 'r') as conf:
                 self.config_file = json.load(conf)
         except json.JSONDecodeError:
             sys.exit('Json file failed to unpack')
@@ -40,7 +40,7 @@ class JSON_Verifier:
             sys.exit('Hosts must have unique names.')
     
     def verify_profile(self, name):
-        for profile in self.config_file["SSID_profiles"]:
+        for profile in self.config_file["ssid_profiles"]:
             if profile["name"] == name:
                 return True
         return False
@@ -78,13 +78,13 @@ class JSON_Verifier:
     
     def verify_single_batch(self, batch):
         # check SSID profile
-        for profile in batch["SSID-profiles"]:
+        for profile in batch["ssid_profiles"]:
             if not self.verify_profile(profile):
                 sys.exit('SSID profile name does not match')
         print('profile name in batch {} is verified'.format(batch["name"]))
 
         # check schedule
-        for schedule in batch["schedule"]:
+        for schedule in batch["schedules"]:
             if not self.verify_schedule(schedule):
                 sys.exit('Schedule name does not match') 
         print('schedule name in batch {} is verified'.format(batch["name"]))
@@ -160,9 +160,9 @@ class JSON_Verifier:
     
     def verify_ssid_stanza(self):
         ssid_set = set()
-        for ssid in self.config_file["SSID_profiles"]:
+        for ssid in self.config_file["ssid_profiles"]:
             ssid_set.add(ssid["name"])
-        if len(ssid_set) == len(self.config_file["SSID_profiles"]):
+        if len(ssid_set) == len(self.config_file["ssid_profiles"]):
             print("all names are unique in ssid profiles")
         else:
             sys.exit("ssid profiles must have unique names.")

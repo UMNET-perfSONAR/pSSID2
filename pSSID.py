@@ -7,8 +7,10 @@ from datetime import datetime
 import argparse
 import sched
 import time
+import pscheduler
 from croniter import croniter
 from layer2scan import scan
+from multiprocessing import Process
 
 class PSSID:
     """ The pSSID scheduler. """
@@ -35,6 +37,7 @@ class PSSID:
         try:
             with open('/etc/hostname', 'r', encoding='utf-8') as file:
                 self.hostname = file.readline().strip()
+            print("hostname: " + self.hostname)
         except FileNotFoundError:
             sys.exit('host name file not found')
 
@@ -68,7 +71,7 @@ class PSSID:
                 # process batches
                 for batch_name in host['batches']:
                     batch = self.find_batch(batch_name)
-                    for single_schedule in batch['schedule']:
+                    for single_schedule in batch['schedules']:
                         next_time = self.get_next_time(datetime.now(), single_schedule)
                         self.job_queue.append((next_time, batch["priority"], json.dumps(batch)))
                     self.batch_set.add(batch["name"])
@@ -111,7 +114,7 @@ class PSSID:
                         # skip duplicate batch
                         if batch_name not in self.batch_set:
                             batch = self.find_batch(batch_name)
-                            for single_schedule in batch['schedule']:
+                            for single_schedule in batch['schedules']:
                                 next_time = self.get_next_time(datetime.now(), single_schedule)
                                 # dump batch json object into job queue
                                 self.job_queue.append(
@@ -135,7 +138,7 @@ class PSSID:
             for batch_name in all_group['batches']:
                 if batch_name not in self.batch_set:
                     batch = self.find_batch(batch_name)
-                    for single_schedule in batch['schedule']:
+                    for single_schedule in batch['schedules']:
                         next_time = self.get_next_time(datetime.now(), single_schedule)
                         self.job_queue.append((next_time, batch["priority"], json.dumps(batch)))
                     self.batch_set.add(batch_name)
@@ -190,7 +193,13 @@ class PSSID:
             timestamp, pirority_num, batch = task
             self.scheduler.enterabs(timestamp, pirority_num, self.run_batch, argument=(batch,))
         self.print_queue_info()
-        self.scheduler.run()
+        if self.daemon_mode:
+            print("starting daemon process")
+            process = Process(target=self.scheduler.run(), daemon=True)
+            process.start()
+            process.join()
+        else:
+            self.scheduler.run()
     
     def transform_task(self, transform_field, gen_task_obj):
         """ transform test spec """
@@ -221,8 +230,8 @@ class PSSID:
         print("filtering list result based on SSID profile")
         res = []
         for bssid, info in scan_res.items():
-            for each_profile in extracted_batch["SSID-profiles"]:
-                for profile in self.config_file["SSID-profiles"]:
+            for each_profile in extracted_batch["ssid_profiles"]:
+                for profile in self.config_file["ssid_profiles"]:
                     if profile["name"] == each_profile:
                         if info["Essid"] == profile["SSID"] and profile["min_signal"] < int(info["Signal_level"]):
                             res.append((profile["SSID"], bssid))
@@ -272,9 +281,12 @@ class PSSID:
                                     gen_job["task"].append(gen_task_obj)
                 batch_obj["jobs"].append(gen_job)
         print("Batch obj" + str(batch_obj))
-        
+        if self.daemon_mode:
+            processor = pscheduler.batchprocessor.BatchProcessor(batch_obj)
+            res = processor()
+
         # reschedule soonest (only one time)
-        next_time = min([self.get_next_time(datetime.now(), x) for x in extracted_batch['schedule']])
+        next_time = min([self.get_next_time(datetime.now(), x) for x in extracted_batch['schedules']])
         future_time = datetime.fromtimestamp(next_time)
         future_time_str = future_time.strftime("%H:%M:%S")
         print(f"{extracted_batch['name']} is rescheduled to {future_time_str}")
@@ -299,7 +311,7 @@ if __name__ == "__main__":
     # setup before entering the main loop
     args = parser.parse_args()
     dispatcher = PSSID(args.mode)
-    # dispatcher.find_hostname()
+    dispatcher.find_hostname()
     dispatcher.load_json()
     dispatcher.load_hosts()
     dispatcher.load_host_group()
