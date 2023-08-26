@@ -1,0 +1,63 @@
+---
+- hosts: ilab
+  become: yes
+  become_user: root
+  become_method: su
+  vars:
+    repo_url: "https://github.com/UMNET-perfSONAR/pSSID2.git"
+    destination_path: "/"
+    packages:
+      - python3-pip
+      - wireless-tools
+      - net-tools
+      - autoconf
+      - libtool
+
+  tasks:
+
+    - name: Ensure git is installed
+      apt:
+        name: git
+        state: present
+
+    - name: Clone GitHub repository
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ destination_path }}"
+        clone: yes
+        update: yes
+
+    - name: Install required packages
+      apt:
+        name: "{{ packages }}"
+        state: present
+
+    - name: Ensure pip is installed
+      apt:
+        name: python3-pip
+        state: present
+
+    - name: Install Python packages using pip
+      pip:
+        name:
+          - psheduler
+        executable: pip3
+    
+    - name: Remove network manager using apt
+      apt:
+        name: network-manager
+        state: absent
+
+    - name: Bring up wlan0 interface
+      command:
+        cmd: ifconfig wlan0 up
+
+    - name : Run pSSID2 verifier with default config file in /tmp/config.json
+      command:
+        cmd: python3 json_verifier.py
+        chdir: /pSSID2
+
+    - name : Run pSSID2 mock mode with default config file in /tmp/config.json
+      command:
+        cmd: python3 pSSID.py -m m
+        chdir: /pSSID2
